@@ -6,7 +6,7 @@ class Tile:
         self.y = position[1]
         self.data = data
 
-        self.maneuver_score = 0
+        self.maneuver_score = -1
         # self.create_test_score()
         self.concealment_score = 0
         self.altitude = 0
@@ -21,8 +21,12 @@ class Tile:
         pass
 
     def create_test_score(self):
-        if self.x < 12 and self.y == 3:
-            self.maneuver_score = -36
+        if self.x == 25:
+            self.maneuver_score = 1
+        
+        if self.y == 25:
+            self.maneuver_score = 1
+        
         # elif self.x == 25 and self.y > 25:
         #     self.maneuver_score = -36
         # elif self.x == 40 and self.y > 25:

@@ -1,5 +1,5 @@
 from tile import Tile
-from d_star_lite import DStarLite
+from a_star import AStar
 import json
 import string
 
@@ -46,16 +46,20 @@ class GameMap:
                 coords = generate_maze_pattern(size, density=random_map[1], seed=random_map[0])
                 self.tiles = [[Tile((x, y)) for y in range(size)] for x in range(size)]
                 for x, y in coords:
-                    self.tiles[x][y].maneuver_score = random.randint(-50, 10)
+                    maneuver_score = random.randint(-10, -2)
+                    if x == 25:
+                        maneuver_score = 1
+                    if y == 25:
+                        maneuver_score = 1
+                    self.tiles[x][y].maneuver_score = maneuver_score
 
     def get_tile(self, position):
         x, y = position
         return self.tiles[x][y]
 
     def find_path(self, unit_weight, start, goal):
-        planner = DStarLite(self, start, goal, unit_weight)
-        planner.compute_shortest_path()
-        return planner.get_path()
+        planner = AStar(self, start, goal, unit_weight)
+        return planner.find_path()
 
     def save_map(self, filename):
         with open(filename, "w") as f:
@@ -91,6 +95,7 @@ class GameMap:
 
     def print_maneuver_map(self, path=None):
         digits = string.digits + string.ascii_lowercase
+        endured_cost = 0
 
         def to_base36(val):
             val = max(min(val, 35), -35)  # clamp to range
@@ -105,17 +110,18 @@ class GameMap:
                 sym = to_base36(val).rjust(2)
                     
                 if path and (x, y) in path:
+                    endured_cost += val
                     if val > 0:
-                        sym = bcolors.OKGREEN + sym + bcolors.ENDC
-                    elif val < 0:
+                        sym = bcolors.OKGREEN + " •" + bcolors.ENDC
+                    elif val < -1:
                         sym = bcolors.FAIL + sym + bcolors.ENDC
                     else:
-                        sym = bcolors.OKCYAN + sym + bcolors.ENDC
-                elif val < 0:
+                        sym = bcolors.OKCYAN + " •" + bcolors.ENDC
+                elif val < -1:
                     sym = bcolors.WARNING + sym + bcolors.ENDC
                 elif val > 0:
                     sym = bcolors.HEADER + sym + bcolors.ENDC
-                elif val == 0:
+                elif val == 0 or val == -1:
                     sym = "  "
 
                 if x == 49 and y == 49:
@@ -123,3 +129,4 @@ class GameMap:
 
                 row += sym
             print(row)
+        print("Endured cost: ", endured_cost)
