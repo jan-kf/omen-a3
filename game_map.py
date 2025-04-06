@@ -1,5 +1,6 @@
 from tile import Tile
 from a_star import AStar
+from unit import Unit
 import json
 import string
 
@@ -93,7 +94,7 @@ class GameMap:
 
         self.tiles = tiles
 
-    def print_maneuver_map(self, path=None):
+    def print_maneuver_map(self, unit:Unit, path=None):
         digits = string.digits + string.ascii_lowercase
         endured_cost = 0
 
@@ -109,7 +110,10 @@ class GameMap:
                 val = self.tiles[x][y].maneuver_score
                 sym = to_base36(val).rjust(2)
                     
-                if path and (x, y) in path:
+                if unit and (x, y) == unit.position:
+                    endured_cost += val
+                    sym = bcolors.BOLD + bcolors.OKBLUE + " @" + bcolors.ENDC
+                elif path and (x, y) in path:
                     endured_cost += val
                     if val > 0:
                         sym = bcolors.OKGREEN + " •" + bcolors.ENDC
