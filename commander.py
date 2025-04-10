@@ -6,11 +6,11 @@ class Commander:
         self.agent_id = agent_id
         self.grid = grid
         self.visibility = visibility
-        self.units = [Unit(agent_id, START_POSITIONS[agent_id], grid, visibility)]
+        self.units = [Unit(agent_id, position=START_POSITIONS[agent_id], infantry=1, has_transport=False, armor_rating=0)]
 
     def take_turn(self, influence_map):
         for unit in self.units:
-            unit.act(influence_map)
+            ...
 
     def add_unit(self, position):
-        self.units.append(Unit(self.agent_id, position, self.grid, self.visibility))
+        self.units.append(Unit(self.agent_id, position=position, infantry=1, has_transport=False, armor_rating=0))

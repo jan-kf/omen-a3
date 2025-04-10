@@ -1,5 +1,6 @@
 import heapq
 
+
 class AStar:
     def __init__(self, game_map, start, goal, unit_weight=1.0, stealth_priority=0.0):
         self.map = game_map
@@ -13,9 +14,15 @@ class AStar:
 
     def cost(self, from_tile, to_tile):
         maneuver_penalty = max(0, to_tile.maneuver_score * -1)
-        elevation_change = abs(to_tile.altitude - from_tile.altitude)
+        elevation_change = abs(to_tile.elevation - from_tile.elevation)
         concealment_penalty = (100 - to_tile.concealment_score) * self.stealth_priority
-        return maneuver_penalty + (elevation_change * self.unit_weight) + concealment_penalty
+        cover_maneuver_penalty = 1 + to_tile.cover_score // 100
+        return (
+            maneuver_penalty
+            + (elevation_change * self.unit_weight)
+            + concealment_penalty
+            + cover_maneuver_penalty
+        )
 
     def find_path(self):
         open_set = []
@@ -32,7 +39,10 @@ class AStar:
 
             for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
                 neighbor = (current[0] + dx, current[1] + dy)
-                if not (0 <= neighbor[0] < self.map.size and 0 <= neighbor[1] < self.map.size):
+                if not (
+                    0 <= neighbor[0] < self.map.size
+                    and 0 <= neighbor[1] < self.map.size
+                ):
                     continue
 
                 from_tile = self.map.get_tile(current)
@@ -42,7 +52,9 @@ class AStar:
                 if neighbor not in g_score or tentative_g < g_score[neighbor]:
                     came_from[neighbor] = current
                     g_score[neighbor] = tentative_g
-                    f_score[neighbor] = tentative_g + self.heuristic(neighbor, self.goal)
+                    f_score[neighbor] = tentative_g + self.heuristic(
+                        neighbor, self.goal
+                    )
                     heapq.heappush(open_set, (f_score[neighbor], neighbor))
 
         return []
