@@ -39,17 +39,22 @@ class bcolors:
     ENDC = "\033[0m"
     BOLD = "\033[1m"
     UNDERLINE = "\033[4m"
-    
-    RED = '\033[91m'
-    GREEN = '\033[92m'
-    BLUE = '\033[94m'
-    CYAN = '\033[96m'
-    WHITE = '\033[97m'
-    YELLOW = '\033[93m'
-    MAGENTA = '\033[95m'
-    GREY = '\033[90m'
-    BLACK = '\033[90m'
-    DEFAULT = '\033[99m'
+
+    RED = "\033[91m"
+    GREEN = "\033[92m"
+    BLUE = "\033[94m"
+    CYAN = "\033[96m"
+    WHITE = "\033[97m"
+    YELLOW = "\033[93m"
+    MAGENTA = "\033[95m"
+    GREY = "\033[90m"
+    BLACK = "\033[90m"
+    DEFAULT = "\033[99m"
+
+
+def unit_vector_from_angle(degrees: int) -> Tuple[float, float]:
+    radians = math.radians(degrees)
+    return math.cos(radians), math.sin(radians)
 
 
 class GameMap:
@@ -71,6 +76,7 @@ class GameMap:
                     if y == 25:
                         maneuver_score = 1
                     self.tiles[x][y].maneuver_score = maneuver_score
+                    self.tiles[x][y].concealment_score = 50
 
     def get_tile(self, position):
         x, y = position
@@ -89,65 +95,43 @@ class GameMap:
     #             if 0 <= x < self.size and 0 <= y < self.size:
     #                 visible_tiles.add((x, y))
     #     return visible_tiles
-
+    
     def get_visible_tiles(
         self,
         unit_pos: Position,
         direction_deg: int,
         vision_cone_deg: int,
         vision_range: int,
+        max_occlusion: int = 100,
+        elevation_threshold: int = 5,
     ) -> Set[Position]:
-        
+
         visible = set()
-        direction_rad = math.radians(direction_deg)
-        half_cone = math.radians(vision_cone_deg / 2)
+        direction_deg = direction_deg % 360
+        start_elev = self.tiles[unit_pos[0]][unit_pos[1]].elevation
 
-        for dx in range(-vision_range, vision_range + 1):
-            for dy in range(-vision_range, vision_range + 1):
-                if dx == 0 and dy == 0:
-                    continue
+        half_cone = vision_cone_deg // 2
+        for angle in range(
+            direction_deg - half_cone, direction_deg + half_cone + 1, 10
+        ):
+            dx, dy = unit_vector_from_angle(angle)
+            occlusion = 0
+            for r in range(1, vision_range + 1):
+                tx = unit_pos[0] + round(dx * r)
+                ty = unit_pos[1] + round(dy * r)
 
-                tx, ty = unit_pos[0] + dx, unit_pos[1] + dy
-                rel_dx, rel_dy = tx - unit_pos[0], ty - unit_pos[1]
+                if tx < 0 or tx >= self.size or ty < 0 or ty >= self.size:
+                    break
 
-                dist = math.hypot(rel_dx, rel_dy)
-                if dist > vision_range:
-                    continue
+                tile = self.tiles[tx][ty]
+                if tile.elevation - start_elev > elevation_threshold:
+                    break
 
-                angle_to_tile = math.atan2(rel_dy, rel_dx)
-                angle_diff = (angle_to_tile - direction_rad + math.pi * 2) % (
-                    math.pi * 2
-                )
-                if angle_diff > math.pi:
-                    angle_diff -= math.pi * 2
+                occlusion += tile.concealment_score + tile.cover_score
+                if occlusion >= max_occlusion:
+                    break
 
-                if abs(angle_diff) > half_cone:
-                    continue
-
-                # Elevation and concealment/cover blocking
-                steps = int(dist)
-                unit_elev = self.tiles[unit_pos[0]][unit_pos[1]].elevation
-                blocked = False
-                occlusion_score = 0
-
-                for step in range(1, steps + 1):
-                    ix = unit_pos[0] + int(round(rel_dx * step / dist))
-                    iy = unit_pos[1] + int(round(rel_dy * step / dist))
-                    if ix < 0 or ix >= self.size or iy < 0 or iy >= self.size:
-                        continue
-
-                    tile = self.tiles[ix][iy]
-                    if tile.elevation - unit_elev > 5:
-                        blocked = True
-                        break
-
-                    occlusion_score += (tile.concealment_score + tile.cover_score)
-                    if occlusion_score >= 100:
-                        blocked = True
-                        break
-
-                if not blocked:
-                    visible.add((tx, ty))
+                visible.add((tx, ty))
 
         return visible
 
