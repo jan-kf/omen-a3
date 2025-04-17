@@ -1,9 +1,14 @@
+from typing import Tuple, Optional
+
+
 class Tile:
     def __init__(self, position, data=None):
         self.position = position
         self.x = position[0]
         self.y = position[1]
         self.data = data
+
+        self.occupation: Tuple[Optional[str], Optional[str]] = (None, None)
 
         self.maneuver_score = -1
         # self.create_test_score()
@@ -30,11 +35,11 @@ class Tile:
     def make_test_elevation(self):
         if self.x == 14 and self.y == 13:
             self.elevation = 10
-            
+
     def make_test_concealment(self):
         if self.y == 12:
             self.cover_score = 10
-    
+
     def make_test_cover(self):
         if self.y == 12:
             self.cover_score = 10

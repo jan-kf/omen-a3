@@ -1,13 +1,17 @@
 from tile import Tile
 from a_star import AStar
-from unit import Unit
 import json
 import string
 
 import random
 
 import math
-from typing import List, Tuple, Set
+from typing import List, Tuple, Set, TYPE_CHECKING, Optional
+
+
+if TYPE_CHECKING:
+    from unit import Unit
+    from region_logic import RegionControl
 
 Position = Tuple[int, int]
 
@@ -86,6 +90,15 @@ class GameMap:
         planner = AStar(self, start, goal, unit_weight)
         return planner.find_path()
 
+    def get_adjacent(self, position: Tuple[int, int]) -> List[Tile]:
+        x, y = position
+        adj = []
+        for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+            nx, ny = x + dx, y + dy
+            if 0 <= nx < self.size and 0 <= ny < self.size:
+                adj.append(self.tiles[nx][ny])
+        return adj
+
     # def get_visible_tiles(self, unit: Unit):
     #     visible_tiles = set()
     #     for dx in range(-1, 2):
@@ -95,7 +108,7 @@ class GameMap:
     #             if 0 <= x < self.size and 0 <= y < self.size:
     #                 visible_tiles.add((x, y))
     #     return visible_tiles
-    
+
     def get_visible_tiles(
         self,
         unit_pos: Position,
@@ -167,7 +180,11 @@ class GameMap:
 
         self.tiles = tiles
 
-    def print_maneuver_map(self, unit: Unit, path=None, vision=None):
+    def print_maneuver_map(
+        self,
+        unit: "Unit",
+        region: Optional["RegionControl"] = None,
+    ):
         digits = string.digits + string.ascii_lowercase
         endured_cost = 0
 
@@ -186,7 +203,7 @@ class GameMap:
                 if unit and (x, y) == unit.position:
                     endured_cost += val
                     sym = bcolors.BOLD + bcolors.OKBLUE + " @" + bcolors.ENDC
-                elif path and (x, y) in path:
+                elif unit.assigned_path and (x, y) in unit.assigned_path:
                     endured_cost += val
                     if val > 0:
                         sym = bcolors.OKGREEN + " •" + bcolors.ENDC
@@ -194,8 +211,16 @@ class GameMap:
                         sym = bcolors.FAIL + sym + bcolors.ENDC
                     else:
                         sym = bcolors.OKCYAN + " •" + bcolors.ENDC
-                elif vision and (x, y) in vision:
-                    sym = bcolors.WHITE + " ▩" + bcolors.ENDC
+                # elif unit.get_visible_tiles(self) and (x, y) in unit.get_visible_tiles(self):
+                #     sym = bcolors.WHITE + " ▩" + bcolors.ENDC
+
+                elif region:
+                    if (x, y) in region.get_frontier_tiles():
+                        sym = bcolors.YELLOW + " ◌" + bcolors.ENDC
+                    elif (x, y) in region.controlled_tiles:
+                        sym = bcolors.OKGREEN + " ◉" + bcolors.ENDC
+                    elif (x, y) in region.find_expansion_targets():
+                        sym = bcolors.OKCYAN + " ◍" + bcolors.ENDC
                 elif val < -1:
                     sym = bcolors.WARNING + sym + bcolors.ENDC
                 elif val > 0:
@@ -209,3 +234,4 @@ class GameMap:
                 row += sym
             print(row)
         print("Endured cost: ", endured_cost)
+        print("Unit task: ", unit.current_tasking)
