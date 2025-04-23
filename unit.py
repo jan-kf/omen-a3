@@ -1,7 +1,8 @@
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Dict
 
 if TYPE_CHECKING:
     from game_map import GameMap
+    from region_logic import RegionControl
 
 unit_behavior_options = ["SAFE", "DEFENSIVE", "AGGRESSIVE", "STEALTHY"]
 unit_rules_of_engagement = ["HOLD_FIRE", "RETURN_FIRE", "OPEN_FIRE"]
@@ -10,6 +11,9 @@ unit_rules_of_engagement = ["HOLD_FIRE", "RETURN_FIRE", "OPEN_FIRE"]
 class Unit:
     def __init__(
         self,
+        game_map: "GameMap",
+        region_map: Dict[str, "RegionControl"],
+        assigned_region_id: str,
         agent_id,
         side,
         position,
@@ -20,6 +24,9 @@ class Unit:
         vision_cone=120,
         vision_range=5,
     ):
+        self.game_map = game_map
+        self.region_map = region_map
+        self.assigned_region = region_map[assigned_region_id]
         self.agent_id = agent_id
         self.position = position
         self.count = infantry
@@ -34,16 +41,17 @@ class Unit:
         self.assigned_path = []
         self.behavior = "SAFE"
         self.rules_of_engagement = "RETURN_FIRE"
-
-        self.assigned_region: Optional[str] = None
         self.side: Optional[str] = side  # "A" or "B"
 
-    def handle_assigned_location(self, game_map: "GameMap", position):
+    def assign_region(self, region_id: str):
+        self.assigned_region = self.region_map[region_id]
+
+    def handle_assigned_location(self, position):
         if position == self.position:
             return []
 
         if not self.assigned_path:
-            self.assigned_path = game_map.find_path(
+            self.assigned_path = self.game_map.find_path(
                 unit_weight=self.armor_rating,
                 start=self.position,
                 goal=position,
@@ -52,13 +60,13 @@ class Unit:
         if not self.assigned_path:
             return []
 
-        if self.assigned_path[-1] == position:
-            self.assigned_path.pop(-1)
+        if self.assigned_path[0] == self.position:
+            self.assigned_path.pop(0)
 
         return self.assigned_path
 
-    def get_visible_tiles(self, game_map: "GameMap"):
-        return game_map.get_visible_tiles(
+    def get_visible_tiles(self):
+        return self.game_map.get_visible_tiles(
             self.position, self.direction, self.vision_cone, self.vision_range
         )
 
@@ -111,6 +119,13 @@ class Unit:
                 self.direction = 135
 
         self.position = new_position
+
+        tile = self.game_map.get_tile(self.position)
+        if tile.occupation[0] != self.side:
+            # if tile is occupied by enemy, we need to let enemy know that it's taken
+            if prev_occupier := self.region_map.get(tile.occupation[1]):
+                prev_occupier.remove_tile(tile)
+            self.assigned_region.add_tile(tile)
 
     def hold(self):
         self.current_tasking = "HOLD"

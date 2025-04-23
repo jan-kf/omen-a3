@@ -1,4 +1,5 @@
 from typing import Tuple, Optional
+import random
 
 
 class Tile:
@@ -33,8 +34,7 @@ class Tile:
         pass
 
     def make_test_elevation(self):
-        if self.x == 14 and self.y == 13:
-            self.elevation = 10
+        self.elevation = random.randint(0, 36)
 
     def make_test_concealment(self):
         if self.y == 12:

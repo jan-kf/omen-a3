@@ -81,6 +81,7 @@ class GameMap:
                         maneuver_score = 1
                     self.tiles[x][y].maneuver_score = maneuver_score
                     self.tiles[x][y].concealment_score = 50
+                    # self.tiles[x][y].elevation = random.randint(0, 100)
 
     def get_tile(self, position):
         x, y = position
@@ -182,8 +183,7 @@ class GameMap:
 
     def print_maneuver_map(
         self,
-        unit: "Unit",
-        region: Optional["RegionControl"] = None,
+        regions: List["RegionControl"],
     ):
         digits = string.digits + string.ascii_lowercase
         endured_cost = 0
@@ -197,41 +197,65 @@ class GameMap:
         for y in reversed(range(self.size)):
             row = ""
             for x in range(self.size):
-                val = self.tiles[x][y].maneuver_score + self.tiles[x][y].elevation
+                # val = self.tiles[x][y].maneuver_score + self.tiles[x][y].elevation
+                val = self.tiles[x][y].elevation
                 sym = to_base36(val).rjust(2)
+                has_changed = False
 
-                if unit and (x, y) == unit.position:
-                    endured_cost += val
-                    sym = bcolors.BOLD + bcolors.OKBLUE + " @" + bcolors.ENDC
-                elif unit.assigned_path and (x, y) in unit.assigned_path:
-                    endured_cost += val
-                    if val > 0:
-                        sym = bcolors.OKGREEN + " •" + bcolors.ENDC
-                    elif val < -1:
-                        sym = bcolors.FAIL + sym + bcolors.ENDC
-                    else:
-                        sym = bcolors.OKCYAN + " •" + bcolors.ENDC
                 # elif unit.get_visible_tiles(self) and (x, y) in unit.get_visible_tiles(self):
                 #     sym = bcolors.WHITE + " ▩" + bcolors.ENDC
 
-                elif region:
-                    if (x, y) in region.get_frontier_tiles():
-                        sym = bcolors.YELLOW + " ◌" + bcolors.ENDC
-                    elif (x, y) in region.controlled_tiles:
-                        sym = bcolors.OKGREEN + " ◉" + bcolors.ENDC
-                    elif (x, y) in region.find_expansion_targets():
-                        sym = bcolors.OKCYAN + " ◍" + bcolors.ENDC
-                elif val < -1:
-                    sym = bcolors.WARNING + sym + bcolors.ENDC
-                elif val > 0:
-                    sym = bcolors.HEADER + sym + bcolors.ENDC
-                elif val == 0 or val == -1:
-                    sym = "  "
+                for region in regions:
 
-                if x == 49 and y == 49:
-                    sym = bcolors.OKGREEN + sym + bcolors.ENDC
+                    # if (x, y) in region.get_frontier_tiles():
+                    #     sym = bcolors.YELLOW + " ◌" + bcolors.ENDC
+                    if has_changed:
+                        continue
+
+                    if (x, y) in region.controlled_tiles:
+                        if region.side == "A":
+                            sym = bcolors.OKGREEN + " ◉" + bcolors.ENDC
+                            # sym = bcolors.OKGREEN + sym + bcolors.ENDC
+                            has_changed = True
+                        elif region.side == "B":
+                            sym = bcolors.YELLOW + " ◉" + bcolors.ENDC
+                            # sym = bcolors.YELLOW + sym + bcolors.ENDC
+                            has_changed = True
+                            # print("FOO")
+                    # elif (x, y) in region.find_expansion_targets():
+                    #     if region.side == "A":
+                    #         sym = bcolors.OKCYAN + sym + bcolors.ENDC
+                    #         # sym = bcolors.OKCYAN + " ◍" + bcolors.ENDC
+                    #         has_changed = True
+                    #     elif region.side == "B":
+                    #         sym = bcolors.HEADER + sym + bcolors.ENDC
+                    #         has_changed = True
+                    #         # print("BAR")
+                    tile_weight = 0
+                    for unit in region.units:
+                        if (x, y) == unit.position:
+                            endured_cost += val
+                            tile_weight += 1
+                            sym = to_base36(tile_weight).rjust(2)
+                            if unit.side == "A":
+                                sym = bcolors.CYAN + sym + bcolors.ENDC
+                                has_changed = True
+                            elif unit.side == "B":
+                                sym = bcolors.FAIL + sym + bcolors.ENDC
+                                has_changed = True
+                        # elif unit.assigned_path and (x, y) in unit.assigned_path:
+                        #     endured_cost += val
+                        #     if unit.side == "A":
+                        #         sym = bcolors.CYAN + " •" + bcolors.ENDC
+                        #         has_changed = True
+                        #     elif unit.side == "B":
+                        #         sym = bcolors.YELLOW + " •" + bcolors.ENDC
+                        #         has_changed = True
+
+                if not has_changed:
+                    sym = bcolors.WHITE + sym + bcolors.ENDC
 
                 row += sym
             print(row)
-        print("Endured cost: ", endured_cost)
-        print("Unit task: ", unit.current_tasking)
+        # print("Endured cost: ", endured_cost)
+        # print("Unit task: ", unit.current_tasking)

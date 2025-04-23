@@ -6,69 +6,75 @@ import time
 
 s = random.randint(0, 1000000)
 
+map_size = 50
+tile_cap = 1000
+
 start_time = time.time()
-game_map = GameMap(size=25, random_map=(s, 0.1))
+game_map = GameMap(size=map_size, random_map=(s, 0.1))
 map_gen_time = time.time() - start_time
 print(f"Map generation time: {map_gen_time:.9f} seconds")
 
 
-unit = Unit(
-    agent_id=1,
-    side="A",
-    position=(0, 0),
-    infantry=1,
-    has_transport=False,
-    armor_rating=0,
-    direction=0,
-    vision_cone=270,
-    vision_range=5,
-)
-# game_map.save_map("map_encoding")
-
-# game_map = GameMap(size=50, map_encoding="map_encoding")
+units_per_region = 20
 
 
-# unit_weight = 4
-# start = (0, 0)
-# goal = (49, 49)
-
-
-# start_time = time.time()
-# path = unit.handle_assigned_location(game_map, goal)
-# path_calc_time = time.time() - start_time
-# print(f"Path calculation time: {path_calc_time:.9f} seconds")
-
-# path_length = len(path)
-
-act_time = 0
-visible_time = 0
+def get_adjacent_positions(position):
+    x, y = position
+    return [
+        (x - 1, y),
+        (x + 1, y),
+        (x, y - 1),
+        (x, y + 1),
+        (x - 1, y - 1),
+        (x + 1, y + 1),
+        (x - 1, y + 1),
+        (x + 1, y - 1),
+    ]
 
 
 region = RegionControl(
-    region_id="A",
+    region_id="Alpha",
     side="A",
-    tile_cap=10,
+    tile_cap=tile_cap,
     game_map=game_map,
-    list_of_positions=[
-        (0, 0),
-        (1, 0),
-        (2, 0),
-        (0, 1),
-        (0, 2),
-        (1, 1),
-        (1, 2),
-        (2, 2),
-        (2, 1),
-    ],
+    list_of_positions=get_adjacent_positions((5, 5)),
 )
 
-region.assign_unit(unit)
 
-for _ in range(10):
-    game_map.print_maneuver_map(unit, region=region)
-    region.assign_units_to_expand()
-    unit.act()
-    time.sleep(0.1)
+region2 = RegionControl(
+    region_id="Bravo",
+    side="B",
+    tile_cap=tile_cap,
+    game_map=game_map,
+    list_of_positions=get_adjacent_positions((45, 45)),
+)
+
+regions = {"Alpha": region, "Bravo": region2}
+
+region_list = list(regions.values())
+
+
+for _region in region_list:
+    for i in range(units_per_region):
+        _region.assign_unit(
+            Unit(
+                game_map=game_map,
+                region_map=regions,
+                assigned_region_id=_region.region_id,
+                agent_id=i,
+                side=_region.side,
+                position=random.choice(list(_region.controlled_tiles)),
+            )
+        )
+
+
+for _ in range(1000):
+    game_map.print_maneuver_map(regions=region_list)
+    for _region in region_list:
+        _region.assign_units_to_expand()
+        for _unit in _region.units:
+            _unit.act()
+    time.sleep(0.3)
 
 
 # for i in range(len(path)):
