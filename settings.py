@@ -1,6 +1,0 @@
-GRID_SIZE = 10
-TURN_LIMIT = 20
-START_POSITIONS = {
-    "A": (0, 0),
-    "B": (GRID_SIZE - 1, GRID_SIZE - 1)
-}
