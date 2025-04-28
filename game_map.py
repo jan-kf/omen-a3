@@ -100,16 +100,6 @@ class GameMap:
                 adj.append(self.tiles[nx][ny])
         return adj
 
-    # def get_visible_tiles(self, unit: Unit):
-    #     visible_tiles = set()
-    #     for dx in range(-1, 2):
-    #         for dy in range(-1, 2):
-    #             x = unit.position[0] + dx
-    #             y = unit.position[1] + dy
-    #             if 0 <= x < self.size and 0 <= y < self.size:
-    #                 visible_tiles.add((x, y))
-    #     return visible_tiles
-
     def get_visible_tiles(
         self,
         unit_pos: Position,
@@ -214,11 +204,11 @@ class GameMap:
 
                     if (x, y) in region.controlled_tiles:
                         if region.side == "A":
-                            sym = bcolors.OKGREEN + " ◉" + bcolors.ENDC
+                            sym = bcolors.OKGREEN + "░░" + bcolors.ENDC
                             # sym = bcolors.OKGREEN + sym + bcolors.ENDC
                             has_changed = True
                         elif region.side == "B":
-                            sym = bcolors.YELLOW + " ◉" + bcolors.ENDC
+                            sym = bcolors.YELLOW + "░░" + bcolors.ENDC
                             # sym = bcolors.YELLOW + sym + bcolors.ENDC
                             has_changed = True
                             # print("FOO")
@@ -236,7 +226,25 @@ class GameMap:
                         if (x, y) == unit.position:
                             endured_cost += val
                             tile_weight += 1
-                            sym = to_base36(tile_weight).rjust(2)
+                            match unit.direction:
+                                case 90:
+                                    sym = " ↑"
+                                case 45:
+                                    sym = " ↗"
+                                case 0:
+                                    sym = " →"
+                                case 315:
+                                    sym = " ↘"
+                                case 180:
+                                    sym = " ↓"
+                                case 225:
+                                    sym = " ↙"
+                                case 270:
+                                    sym = " ←"
+                                case 135:
+                                    sym = " ↖"
+                            sym = "██"
+                            # sym = to_base36(tile_weight).rjust(2)
                             if unit.side == "A":
                                 sym = bcolors.CYAN + sym + bcolors.ENDC
                                 has_changed = True

@@ -1,5 +1,8 @@
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List, TYPE_CHECKING
 import random
+
+if TYPE_CHECKING:
+    from unit import Unit
 
 
 class Tile:
@@ -10,6 +13,7 @@ class Tile:
         self.data = data
 
         self.occupation: Tuple[Optional[str], Optional[str]] = (None, None)
+        self.units: List["Unit"] = []
 
         self.maneuver_score = -1
         # self.create_test_score()

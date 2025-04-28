@@ -75,23 +75,3 @@ for _ in range(1000):
         for _unit in _region.units:
             _unit.act()
     time.sleep(0.3)
-
-
-# for i in range(len(path)):
-#     # time.sleep(0.2)
-#     start_time = time.time()
-#     unit.act()
-#     act_time += time.time() - start_time
-#     start_time = time.time()
-#     visible_tiles = game_map.get_visible_tiles(
-#         unit.position, unit.direction, unit.vision_cone, unit.vision_range
-#     )
-#     visible_time += time.time() - start_time
-#     # game_map.print_maneuver_map(unit, path=path, vision=visible_tiles)
-
-# act_time /= path_length
-# visible_time /= path_length
-
-# print(f"Path length: {path_length}")
-# print(f"Act time: {act_time:.9f} seconds")
-# print(f"Visible time: {visible_time:.9f} seconds")

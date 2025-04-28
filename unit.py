@@ -76,8 +76,36 @@ class Unit:
         else:
             self.hold()
 
+    def get_visible_units(self, visible_tiles=None):
+        if visible_tiles is None:
+            visible_tiles = self.get_visible_tiles()
+        visible_units = {}
+        for tile_pos in visible_tiles:
+            tile = self.game_map.get_tile(tile_pos)
+            if units := tile.units:
+                for unit in units:
+                    visible_units[unit.side] = unit
+        return visible_units
+
     def handle_contact(self):
         # Placeholder for contact handling logic
+        # handle contact that's next to us first
+        nearby_units = []
+        nearby_tiles = self.game_map.get_adjacent(self.position)
+        for tile in nearby_tiles:
+            if units := tile.units:
+                for unit in units:
+                    if unit.side != self.side:
+                        nearby_units.append(unit)
+
+        ...  # handle contact that's next to us
+
+        # handle contact that's not nearby
+        visible_units = self.get_visible_units()
+        for friendly_unit in visible_units.get(self.side, []):
+            if friendly_unit != self:
+                # check if enemies are near friendly unit
+                ...
         pass
 
     def move(self):
@@ -118,14 +146,17 @@ class Unit:
             case [-1, 1]:
                 self.direction = 135
 
+        tile_moving_off_of = self.game_map.get_tile(self.position)
+        tile_moving_off_of.units.remove(self)
         self.position = new_position
 
-        tile = self.game_map.get_tile(self.position)
-        if tile.occupation[0] != self.side:
+        new_tile = self.game_map.get_tile(self.position)
+        new_tile.units.append(self)
+        if new_tile.occupation[0] != self.side:
             # if tile is occupied by enemy, we need to let enemy know that it's taken
-            if prev_occupier := self.region_map.get(tile.occupation[1]):
-                prev_occupier.remove_tile(tile)
-            self.assigned_region.add_tile(tile)
+            if prev_occupier := self.region_map.get(new_tile.occupation[1]):
+                prev_occupier.remove_tile(new_tile)
+            self.assigned_region.add_tile(new_tile)
 
     def hold(self):
         self.current_tasking = "HOLD"
