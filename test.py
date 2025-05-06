@@ -3,19 +3,28 @@ from game_map import GameMap
 from unit import Unit
 from region_logic import RegionControl
 import time
+import math
 
 s = random.randint(0, 1000000)
 
 map_size = 50
 tile_cap = 1000
 
+waveform = lambda x, y: 20 * math.sin(x / 5) + 20 * math.cos(y / 5)
+flat_random = lambda x, y: 0 + random.uniform(-5, 5)
+radial_bump = lambda x, y: 50 * math.sin(math.hypot(x - 25, y - 25) / 5)
+valley = lambda x, y: abs(x - y) ** 1.5
+
 start_time = time.time()
-game_map = GameMap(size=map_size, random_map=(s, 0.1))
+game_map = GameMap(
+    size=map_size,
+    generation_funct=valley,
+)
 map_gen_time = time.time() - start_time
 print(f"Map generation time: {map_gen_time:.9f} seconds")
 
 
-units_per_region = 20
+units_per_region = 5
 
 
 def get_adjacent_positions(position):
@@ -37,7 +46,7 @@ region = RegionControl(
     side="A",
     tile_cap=tile_cap,
     game_map=game_map,
-    list_of_positions=get_adjacent_positions((5, 5)),
+    list_of_positions=get_adjacent_positions((10, 10)),
 )
 
 
@@ -46,7 +55,7 @@ region2 = RegionControl(
     side="B",
     tile_cap=tile_cap,
     game_map=game_map,
-    list_of_positions=get_adjacent_positions((45, 45)),
+    list_of_positions=get_adjacent_positions((40, 40)),
 )
 
 regions = {"Alpha": region, "Bravo": region2}

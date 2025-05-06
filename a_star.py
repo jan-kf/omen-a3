@@ -14,7 +14,7 @@ class AStar:
 
     def cost(self, from_tile, to_tile):
         maneuver_penalty = max(0, to_tile.maneuver_score * -1)
-        elevation_change = abs(to_tile.elevation - from_tile.elevation)
+        elevation_change = abs(to_tile.elevation - from_tile.elevation) ** 2
         concealment_penalty = (100 - to_tile.concealment_score) * self.stealth_priority
         cover_maneuver_penalty = 1 + to_tile.cover_score // 100
         return (

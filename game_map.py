@@ -61,29 +61,29 @@ def unit_vector_from_angle(degrees: int) -> Tuple[float, float]:
     return math.cos(radians), math.sin(radians)
 
 
+def apply_elevation_function(tiles: List[List["Tile"]], size, height_func):
+    for x in range(size):
+        for y in range(size):
+            elevation = int(height_func(x, y))
+            tiles[x][y].elevation = elevation
+            tiles[x][y].maneuver_score = 0 if elevation > 0 else 5
+            tiles[x][y].concealment_score = 50
+            tiles[x][y].cover_score = 50
+            tiles[x][y].fuel = random.randint(0, 1) if elevation < 10 else 0
+            tiles[x][y].manpower = random.randint(0, 1) if elevation < 10 else 0
+            tiles[x][y].resources = random.randint(0, 1) if elevation < 10 else 0
+
+
 class GameMap:
-    def __init__(self, size, map_encoding=None, random_map=(0, 0.1)):
+    def __init__(self, size, map_encoding=None, generation_funct=None):
         self.size = size
         if map_encoding:
             self.load_map(map_encoding, size)
         else:
             self.tiles = [[Tile((x, y)) for y in range(size)] for x in range(size)]
-            if random_map[0] != 0:
-                coords = generate_maze_pattern(
-                    size, density=random_map[1], seed=random_map[0]
-                )
-                self.tiles = [[Tile((x, y)) for y in range(size)] for x in range(size)]
-                for x, y in coords:
-                    maneuver_score = random.randint(-10, -2)
-                    if x == 25:
-                        maneuver_score = 1
-                    if y == 25:
-                        maneuver_score = 1
-                    self.tiles[x][y].maneuver_score = maneuver_score
-                    self.tiles[x][y].concealment_score = 50
-                    # self.tiles[x][y].elevation = random.randint(0, 100)
+            apply_elevation_function(self.tiles, self.size, generation_funct)
 
-    def get_tile(self, position):
+    def get_tile(self, position) -> "Tile":
         x, y = position
         return self.tiles[x][y]
 

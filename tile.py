@@ -28,14 +28,20 @@ class Tile:
         self.manpower = 0
         self.resources = 0
         self.isWater = False
-        self.make_test_elevation()
-        self.make_test_concealment()
-        self.make_test_cover()
+        # self.make_test_elevation()
+        # self.make_test_concealment()
+        # self.make_test_cover()
+        self.make_test_resources()
 
     def calculate_tile_values(self):
         # Placeholder for tile value calculation logic
         # not to be done yet
         pass
+
+    def make_test_resources(self):
+        self.fuel = random.randint(0, 1)
+        self.manpower = random.randint(0, 1)
+        self.resources = random.randint(0, 1)
 
     def make_test_elevation(self):
         self.elevation = random.randint(0, 36)

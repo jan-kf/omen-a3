@@ -25,6 +25,7 @@ class RegionControl:
         self.controlled_tiles: Set[Tuple[int, int]] = set()
 
         self.assigned_positions: Set[Tuple[int, int]] = set()
+        self.guarded_positions: Set[Tuple[int, int]] = set()
 
         for pos in list_of_positions:
             self.controlled_tiles.add(pos)
@@ -59,9 +60,9 @@ class RegionControl:
                     break
         return frontier
 
-    def find_expansion_targets(self) -> List[Tuple[int, int]]:
+    def find_expansion_targets(self) -> List[Tuple[float, Tuple[int, int]]]:
         frontier = self.get_frontier_tiles()
-        candidates: List[Tuple[int, Tile]] = []
+        candidates: List[Tuple[float, Tuple[int, int]]] = []
         for position in frontier:
             tile = self.map.tiles[position[0]][position[1]]
             for neighbor in self.map.get_adjacent(position):
@@ -72,19 +73,53 @@ class RegionControl:
                 if neighbor.occupation and neighbor.occupation[0] == self.side:
                     continue
 
+                score = neighbor.fuel + neighbor.resources + neighbor.manpower
+
                 priority = (
-                    1000
+                    5
                     if neighbor.occupation and neighbor.occupation[0] != self.side
                     else 0
                 )
-                maneuver = neighbor.maneuver_score
-                elevation_penalty = abs(neighbor.elevation - tile.elevation)
-                value = priority + (maneuver - elevation_penalty)
 
-                candidates.append((value, neighbor))
+                tile_cap_modifier = 0  # self.tile_cap // len(self.controlled_tiles)
+
+                maneuver = neighbor.maneuver_score
+                elevation_penalty = abs(neighbor.elevation - tile.elevation) ** 4
+
+                value = (priority + score + tile_cap_modifier) + (
+                    maneuver - elevation_penalty
+                )
+
+                candidates.append((value, neighbor.position))
 
         candidates.sort(reverse=True, key=lambda x: x[0])
-        return [tile.position for _, tile in candidates]
+        return candidates
+
+    def find_guard_targets(self) -> List[Tuple[float, Tuple[int, int]]]:
+        """
+        Identify high-value tiles already under control that should be guarded.
+        Scores tiles based on resource value, elevation, proximity to enemy, etc.
+        Returns a list of (score, position) tuples sorted by score descending.
+        """
+        candidates = []
+        for pos in self.controlled_tiles:
+            tile = self.map.get_tile(pos)
+            score = 0
+
+            # Example scoring logic
+            score += tile.fuel + tile.resources + tile.manpower  # value of the tile
+            # score += (
+            #     tile.concealment_score / 20
+            # )  # harder to detect unit = better guard post
+            # for adj in self.map.get_adjacent(pos):
+            #     if adj.occupation and adj.occupation[0] != self.side:
+            #         score += 10  # near enemy = important
+
+            if pos not in self.guarded_positions:
+                candidates.append((score, pos))
+
+        candidates.sort(reverse=True, key=lambda x: x[0])
+        return candidates
 
     def manhattan_distance(self, a: Tuple[int, int], b: Tuple[int, int]) -> int:
         return abs(a[0] - b[0]) + abs(a[1] - b[1])
@@ -94,24 +129,86 @@ class RegionControl:
             print("Region is at capacity, cannot expand.", self.region_id)
             return
 
-        targets = self.find_expansion_targets()
+        expansion_targets = self.find_expansion_targets()
+        guard_targets = self.find_guard_targets()
         available_units = [u for u in self.units if u.is_idle()]
+        print(
+            self.region_id,
+            len(available_units),
+            len(self.assigned_positions),
+            len(self.guarded_positions),
+            f"{(len(self.controlled_tiles)/self.tile_cap)*100:.2f}% capacity",
+        )
         for unit in available_units:
-            if not targets:
-                print("No targets available for expansion.", self.region_id)
+            if len(expansion_targets) == 0 and len(guard_targets) == 0:
+                print("No targets available for expansion or guarding", self.region_id)
                 break
 
-            # short_targets = targets[:][:3]
-            # short_targets.sort(key=lambda x: self.manhattan_distance(unit.position, x))
-            best_target_position = targets.pop(0)
+            best_expansion_value = float("-inf")
+            best_guard_value = float("-inf")
+            if expansion_targets:
+                best_expansion_value = expansion_targets[0][0]
+            if guard_targets:
+                best_guard_value = guard_targets[0][0]
 
-            best_target = self.map.tiles[best_target_position[0]][
-                best_target_position[1]
-            ]
-            unit.handle_assigned_location(best_target.position)
-            self.assigned_positions.add(best_target.position)
+            if best_expansion_value > best_guard_value:
 
-            # unit needs to be the one that adds the tile to the controlled set
-            # unit needs to let the region know that it's expanded
-            # self.controlled_tiles.add(best_target.position)
-            # best_target.occupation = (self.side, self.region_id)
+                best_expansive_position = expansion_targets.pop(0)[1]
+
+                best_expansive = self.map.tiles[best_expansive_position[0]][
+                    best_expansive_position[1]
+                ]
+                unit.handle_assigned_location(best_expansive.position)
+                self.assigned_positions.add(best_expansive.position)
+
+            else:
+                best_guard_position = guard_targets.pop(0)[1]
+
+                best_guard = self.map.tiles[best_guard_position[0]][
+                    best_guard_position[1]
+                ]
+                unit.handle_assigned_location(best_guard.position)
+                unit.holding_defense = int(best_guard_value)
+                unit.defense_position = best_guard.position
+                self.guarded_positions.add(best_guard.position)
+
+        if len(available_units) == 0:
+            defensive_units = [u for u in self.units if u.holding_defense]
+            for unit in defensive_units:
+                best_expansion_value = float("-inf")
+                best_guard_value = float("-inf")
+                if expansion_targets:
+                    best_expansion_value = expansion_targets[0][0]
+                if guard_targets:
+                    best_guard_value = guard_targets[0][0]
+
+                if (
+                    unit.holding_defense > best_expansion_value
+                    or unit.holding_defense > best_guard_value
+                ):
+                    continue
+
+                if unit.defense_position:
+                    self.guarded_positions.remove(unit.defense_position)
+
+                if best_expansion_value > best_guard_value:
+
+                    best_expansive_position = expansion_targets.pop(0)[1]
+
+                    best_expansive = self.map.tiles[best_expansive_position[0]][
+                        best_expansive_position[1]
+                    ]
+                    unit.handle_assigned_location(best_expansive.position)
+                    unit.holding_defense = 0
+                    self.assigned_positions.add(best_expansive.position)
+
+                else:
+                    best_guard_position = guard_targets.pop(0)[1]
+
+                    best_guard = self.map.tiles[best_guard_position[0]][
+                        best_guard_position[1]
+                    ]
+                    unit.handle_assigned_location(best_guard.position)
+                    unit.holding_defense = int(best_guard_value)
+                    unit.defense_position = best_guard.position
+                    self.guarded_positions.add(best_guard.position)

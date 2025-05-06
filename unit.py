@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional, Dict
+from typing import TYPE_CHECKING, Optional, Dict, Tuple
 
 if TYPE_CHECKING:
     from game_map import GameMap
@@ -41,6 +41,8 @@ class Unit:
         self.assigned_path = []
         self.behavior = "SAFE"
         self.rules_of_engagement = "RETURN_FIRE"
+        self.holding_defense = 0
+        self.defense_position: Optional[Tuple[int, int]] = None
         self.side: Optional[str] = side  # "A" or "B"
 
     def assign_region(self, region_id: str):
@@ -147,14 +149,15 @@ class Unit:
                 self.direction = 135
 
         tile_moving_off_of = self.game_map.get_tile(self.position)
-        tile_moving_off_of.units.remove(self)
+        if self in tile_moving_off_of.units:
+            tile_moving_off_of.units.remove(self)
         self.position = new_position
 
         new_tile = self.game_map.get_tile(self.position)
         new_tile.units.append(self)
         if new_tile.occupation[0] != self.side:
             # if tile is occupied by enemy, we need to let enemy know that it's taken
-            if prev_occupier := self.region_map.get(new_tile.occupation[1]):
+            if prev_occupier := self.region_map.get(new_tile.occupation[1] or ""):
                 prev_occupier.remove_tile(new_tile)
             self.assigned_region.add_tile(new_tile)
 
@@ -163,4 +166,4 @@ class Unit:
         self.direction = -1
 
     def is_idle(self):
-        return self.current_tasking == "HOLD"
+        return self.current_tasking == "HOLD" and self.holding_defense < 1
