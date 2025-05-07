@@ -2,6 +2,7 @@ from tile import Tile
 from a_star import AStar
 import json
 import string
+import sys
 
 import random
 
@@ -171,7 +172,98 @@ class GameMap:
 
         self.tiles = tiles
 
-    def print_maneuver_map(
+    def print_colored_map(self, coordinates: List[Tuple[int, int]], color="RED"):
+        digits = string.digits + string.ascii_lowercase
+
+        def to_base36(val):
+            val = max(min(val, 35), -35)
+            if val < 0:
+                return "-" + digits[abs(val)]
+            return digits[val]
+
+        color_code = getattr(bcolors, color, bcolors.RED)
+
+        for y in reversed(range(self.size)):
+            row = ""
+            for x in range(self.size):
+                val = self.tiles[x][y].elevation // 100
+                sym = to_base36(val).rjust(2)
+                if (x, y) in coordinates:
+                    sym = color_code + "██" + bcolors.ENDC
+                else:
+                    sym = bcolors.WHITE + sym + bcolors.ENDC
+                row += sym
+            print(row)
+
+    def print_maneuver_map(self, regions: List["RegionControl"]):
+        digits = string.digits + string.ascii_lowercase
+
+        def to_base36(val):
+            val = max(min(val, 35), -35)
+            if val < 0:
+                return "-" + digits[abs(val)]
+            return digits[val]
+
+        # Move cursor to the top of the screen
+        sys.stdout.write("\033[H")
+
+        buffer = []
+
+        for y in reversed(range(self.size)):
+            row = []
+            for x in range(self.size):
+                val = self.tiles[x][y].elevation // 10
+                sym = to_base36(val).rjust(2)
+
+                # Controlled Tiles
+                for region in regions:
+                    if (x, y) in region.controlled_tiles:
+                        if region.side == "A":
+                            sym = f"{bcolors.GREEN}░░{bcolors.ENDC}"
+                        elif region.side == "B":
+                            sym = f"{bcolors.YELLOW}░░{bcolors.ENDC}"
+
+                # Units (rendered last to ensure they are visible)
+                for region in regions:
+                    for unit in region.units:
+                        if (x, y) == unit.position:
+                            match unit.direction:
+                                case 90:
+                                    sym = " ↑"
+                                case 45:
+                                    sym = " ↗"
+                                case 0:
+                                    sym = " →"
+                                case 315:
+                                    sym = " ↘"
+                                case 180:
+                                    sym = " ↓"
+                                case 225:
+                                    sym = " ↙"
+                                case 270:
+                                    sym = " ←"
+                                case 135:
+                                    sym = " ↖"
+
+                            sym = "██" if unit.holding_defense == 0 else "╳╳"
+                            if unit.side == "B":
+                                sym = f"{bcolors.RED}{sym}{bcolors.ENDC}"
+                            else:
+                                sym = f"{bcolors.CYAN}{sym}{bcolors.ENDC}"
+
+                # Default color for unclaimed tiles
+                if sym == to_base36(val).rjust(2):
+                    sym = f"{bcolors.WHITE}{sym}{bcolors.ENDC}"
+
+                row.append(sym)
+
+            buffer.append("".join(row))
+
+        # Flush the entire map at once to the terminal
+        sys.stdout.write("\n".join(buffer) + "\n")
+        sys.stdout.flush()
+
+    def print_maneuver_map_old(
         self,
         regions: List["RegionControl"],
     ):
@@ -188,7 +280,7 @@ class GameMap:
             row = ""
             for x in range(self.size):
                 # val = self.tiles[x][y].maneuver_score + self.tiles[x][y].elevation
-                val = self.tiles[x][y].elevation
+                val = self.tiles[x][y].elevation // 100
                 sym = to_base36(val).rjust(2)
                 has_changed = False
 
@@ -243,7 +335,7 @@ class GameMap:
                                     sym = " ←"
                                 case 135:
                                     sym = " ↖"
-                            sym = "██"
+                            sym = "██" if unit.holding_defense == 0 else "╳╳"
                             # sym = to_base36(tile_weight).rjust(2)
                             if unit.side == "A":
                                 sym = bcolors.CYAN + sym + bcolors.ENDC

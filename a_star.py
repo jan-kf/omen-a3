@@ -14,12 +14,20 @@ class AStar:
 
     def cost(self, from_tile, to_tile):
         maneuver_penalty = max(0, to_tile.maneuver_score * -1)
-        elevation_change = abs(to_tile.elevation - from_tile.elevation) ** 2
-        concealment_penalty = (100 - to_tile.concealment_score) * self.stealth_priority
-        cover_maneuver_penalty = 1 + to_tile.cover_score // 100
-        return (
+        elevation_difference: int = to_tile.elevation - from_tile.elevation
+
+        # if elevation_difference > 200:
+        #     return float("inf")
+
+        elevation_penalty = abs(elevation_difference) * 1.5 if elevation_difference > 0 else abs(elevation_difference)
+
+        concealment_penalty: int = (
+            100 - to_tile.concealment_score
+        ) * self.stealth_priority
+        cover_maneuver_penalty: int = 1 + to_tile.cover_score // 100
+        return float(
             maneuver_penalty
-            + (elevation_change * self.unit_weight)
+            + (elevation_penalty * self.unit_weight)
             + concealment_penalty
             + cover_maneuver_penalty
         )
@@ -28,7 +36,7 @@ class AStar:
         open_set = []
         heapq.heappush(open_set, (0, self.start))
         came_from = {}
-        g_score = {self.start: 0}
+        g_score = {self.start: 0.0}
         f_score = {self.start: self.heuristic(self.start, self.goal)}
 
         while open_set:
@@ -37,7 +45,16 @@ class AStar:
             if current == self.goal:
                 return self.reconstruct_path(came_from, current)
 
-            for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
+            for dx, dy in [
+                (0, 1),
+                (1, 0),
+                (0, -1),
+                (-1, 0),
+                (1, 1),
+                (-1, -1),
+                (1, -1),
+                (-1, 1),
+            ]:
                 neighbor = (current[0] + dx, current[1] + dy)
                 if not (
                     0 <= neighbor[0] < self.map.size

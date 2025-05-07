@@ -81,10 +81,19 @@ class RegionControl:
                     else 0
                 )
 
-                tile_cap_modifier = 0  # self.tile_cap // len(self.controlled_tiles)
+                tile_cap_modifier = (self.tile_cap // len(self.controlled_tiles)) * 10
 
                 maneuver = neighbor.maneuver_score
-                elevation_penalty = abs(neighbor.elevation - tile.elevation) ** 4
+                elevation_difference = neighbor.elevation - tile.elevation
+
+                # if elevation_difference > 200:
+                #     continue  # not even allowed to move there
+                # else:
+                elevation_penalty = (
+                    abs(elevation_difference) * 1.5
+                    if elevation_difference > 0
+                    else abs(elevation_difference)
+                )
 
                 value = (priority + score + tile_cap_modifier) + (
                     maneuver - elevation_penalty
@@ -108,9 +117,9 @@ class RegionControl:
 
             # Example scoring logic
             score += tile.fuel + tile.resources + tile.manpower  # value of the tile
-            # score += (
-            #     tile.concealment_score / 20
-            # )  # harder to detect unit = better guard post
+            score += (
+                tile.concealment_score / 20
+            )  # harder to detect unit = better guard post
             # for adj in self.map.get_adjacent(pos):
             #     if adj.occupation and adj.occupation[0] != self.side:
             #         score += 10  # near enemy = important
@@ -138,6 +147,8 @@ class RegionControl:
             len(self.assigned_positions),
             len(self.guarded_positions),
             f"{(len(self.controlled_tiles)/self.tile_cap)*100:.2f}% capacity",
+            [x[0] for x in expansion_targets[:5]],
+            [x[0] for x in guard_targets[:5]],
         )
         for unit in available_units:
             if len(expansion_targets) == 0 and len(guard_targets) == 0:
