@@ -31,7 +31,7 @@ class Tile:
         # self.make_test_elevation()
         # self.make_test_concealment()
         # self.make_test_cover()
-        self.make_test_resources()
+        # self.make_test_resources()
 
     def calculate_tile_values(self):
         # Placeholder for tile value calculation logic

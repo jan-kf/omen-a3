@@ -19,7 +19,11 @@ class AStar:
         # if elevation_difference > 200:
         #     return float("inf")
 
-        elevation_penalty = abs(elevation_difference) * 1.5 if elevation_difference > 0 else abs(elevation_difference)
+        elevation_penalty = (
+            abs(elevation_difference) * 1.5
+            if elevation_difference > 0
+            else abs(elevation_difference)
+        )
 
         concealment_penalty: int = (
             100 - to_tile.concealment_score
@@ -64,6 +68,8 @@ class AStar:
 
                 from_tile = self.map.get_tile(current)
                 to_tile = self.map.get_tile(neighbor)
+                if to_tile.isWater:
+                    continue
                 tentative_g = g_score[current] + self.cost(from_tile, to_tile)
 
                 if neighbor not in g_score or tentative_g < g_score[neighbor]:

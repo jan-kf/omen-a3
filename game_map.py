@@ -73,6 +73,7 @@ def apply_elevation_function(tiles: List[List["Tile"]], size, height_func):
             tiles[x][y].fuel = random.randint(0, 1) if elevation < 10 else 0
             tiles[x][y].manpower = random.randint(0, 1) if elevation < 10 else 0
             tiles[x][y].resources = random.randint(0, 1) if elevation < 10 else 0
+            tiles[x][y].isWater = True if elevation < 0 else False
 
 
 class GameMap:
@@ -153,6 +154,7 @@ class GameMap:
                         "fuel": tile.fuel,
                         "manpower": tile.manpower,
                         "resources": tile.resources,
+                        "isWater": tile.isWater,
                     }
                     f.write(json.dumps(data) + "\n")
 
@@ -168,6 +170,7 @@ class GameMap:
                 tile.fuel = data["fuel"]
                 tile.manpower = data["manpower"]
                 tile.resources = data["resources"]
+                tile.isWater = data.get("isWater", False)
                 tiles[tile.x][tile.y] = tile
 
         self.tiles = tiles
@@ -212,8 +215,13 @@ class GameMap:
         for y in reversed(range(self.size)):
             row = []
             for x in range(self.size):
-                val = self.tiles[x][y].elevation // 10
+                val = self.tiles[x][y].elevation
                 sym = to_base36(val).rjust(2)
+
+                if self.tiles[x][y].isWater:
+                    sym = bcolors.BLUE + "▓▓" + bcolors.ENDC
+                    row += sym
+                    continue
 
                 # Controlled Tiles
                 for region in regions:
@@ -280,7 +288,7 @@ class GameMap:
             row = ""
             for x in range(self.size):
                 # val = self.tiles[x][y].maneuver_score + self.tiles[x][y].elevation
-                val = self.tiles[x][y].elevation // 100
+                val = self.tiles[x][y].elevation
                 sym = to_base36(val).rjust(2)
                 has_changed = False
 

@@ -15,11 +15,17 @@ flat_random = lambda x, y: 0 + random.uniform(-5, 5)
 radial_bump = lambda x, y: 50 * math.sin(math.hypot(x - 25, y - 25) / 5)
 valley = lambda x, y: abs(x - y) * 10  # * 100
 hills = lambda x, y: (math.sin(x / 2) + math.cos(y / 2)) * 200
+hills_with_water = (
+    lambda x, y: 10 * math.sin(0.1 * x) * math.cos(0.05 * y)
+    + math.sin(0.5 * x)
+    + math.cos(0.5 * y)
+    + 5
+)
 
 start_time = time.time()
 game_map = GameMap(
     size=map_size,
-    generation_funct=hills,
+    generation_funct=hills_with_water,
 )
 map_gen_time = time.time() - start_time
 print(f"Map generation time: {map_gen_time:.9f} seconds")
@@ -68,6 +74,7 @@ region2 = RegionControl(
 )
 
 regions = {"Alpha": region, "Bravo": region2}
+# regions = {"Alpha": region}
 
 region_list = list(regions.values())
 

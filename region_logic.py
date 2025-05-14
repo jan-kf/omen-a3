@@ -66,6 +66,8 @@ class RegionControl:
         for position in frontier:
             tile = self.map.tiles[position[0]][position[1]]
             for neighbor in self.map.get_adjacent(position):
+                if neighbor.isWater:
+                    continue
                 if neighbor.position in self.controlled_tiles:
                     continue
                 if neighbor.position in self.assigned_positions:
@@ -81,7 +83,7 @@ class RegionControl:
                     else 0
                 )
 
-                tile_cap_modifier = (self.tile_cap // len(self.controlled_tiles)) * 10
+                tile_cap_modifier = (self.tile_cap // len(self.controlled_tiles)) * 100
 
                 maneuver = neighbor.maneuver_score
                 elevation_difference = neighbor.elevation - tile.elevation
