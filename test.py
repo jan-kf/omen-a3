@@ -21,11 +21,20 @@ hills_with_water = (
     + math.cos(0.5 * y)
     + 5
 )
+valuable_tiles = [
+    (5, 20),
+    (45, 30),
+    (6, 30),
+    (44, 20),
+    (25, 25),
+    (25, 40),
+]
 
 start_time = time.time()
 game_map = GameMap(
     size=map_size,
     generation_funct=hills_with_water,
+    points_of_interest=valuable_tiles,
 )
 map_gen_time = time.time() - start_time
 print(f"Map generation time: {map_gen_time:.9f} seconds")

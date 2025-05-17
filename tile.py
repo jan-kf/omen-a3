@@ -39,9 +39,7 @@ class Tile:
         pass
 
     def make_test_resources(self):
-        self.fuel = random.randint(0, 1)
-        self.manpower = random.randint(0, 1)
-        self.resources = random.randint(0, 1)
+        pass
 
     def make_test_elevation(self):
         self.elevation = random.randint(0, 36)

@@ -77,13 +77,22 @@ def apply_elevation_function(tiles: List[List["Tile"]], size, height_func):
 
 
 class GameMap:
-    def __init__(self, size, map_encoding=None, generation_funct=None):
+    def __init__(
+        self, size, map_encoding=None, generation_funct=None, points_of_interest=[]
+    ):
         self.size = size
         if map_encoding:
             self.load_map(map_encoding, size)
         else:
             self.tiles = [[Tile((x, y)) for y in range(size)] for x in range(size)]
             apply_elevation_function(self.tiles, self.size, generation_funct)
+
+        self.points_of_interest = points_of_interest
+        for point in points_of_interest:
+            x, y = point
+            self.tiles[x][y].fuel = 100
+            self.tiles[x][y].manpower = 100
+            self.tiles[x][y].resources = 100
 
     def get_tile(self, position) -> "Tile":
         x, y = position
@@ -226,10 +235,14 @@ class GameMap:
                 # Controlled Tiles
                 for region in regions:
                     if (x, y) in region.controlled_tiles:
+                        if (x, y) in self.points_of_interest:
+                            sym = "▛▟"
+                        else:
+                            sym = "░░"
                         if region.side == "A":
-                            sym = f"{bcolors.GREEN}░░{bcolors.ENDC}"
+                            sym = f"{bcolors.GREEN}{sym}{bcolors.ENDC}"
                         elif region.side == "B":
-                            sym = f"{bcolors.YELLOW}░░{bcolors.ENDC}"
+                            sym = f"{bcolors.YELLOW}{sym}{bcolors.ENDC}"
 
                 # Units (rendered last to ensure they are visible)
                 for region in regions:
@@ -253,7 +266,11 @@ class GameMap:
                                 case 135:
                                     sym = " ↖"
 
-                            sym = "██" if unit.holding_defense == 0 else "╳╳"
+                            if (x, y) in self.points_of_interest:
+                                sym = "▛▟"
+                            else:
+                                sym = "██" if unit.holding_defense == 0 else "╳╳"
+
                             if unit.side == "B":
                                 sym = f"{bcolors.RED}{sym}{bcolors.ENDC}"
                             else:
@@ -261,7 +278,10 @@ class GameMap:
 
                 # Default color for unclaimed tiles
                 if sym == to_base36(val).rjust(2):
-                    sym = f"{bcolors.WHITE}{sym}{bcolors.ENDC}"
+                    if (x, y) in self.points_of_interest:
+                        sym = bcolors.YELLOW + "▛▟" + bcolors.ENDC
+                    else:
+                        sym = f"{bcolors.WHITE}{sym}{bcolors.ENDC}"
 
                 row.append(sym)
 
