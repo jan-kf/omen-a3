@@ -220,6 +220,7 @@ class GameMap:
         sys.stdout.write("\033[H")
 
         buffer = []
+        changed = False
 
         for y in reversed(range(self.size)):
             row = []
@@ -228,15 +229,22 @@ class GameMap:
                 sym = to_base36(val).rjust(2)
 
                 if self.tiles[x][y].isWater:
-                    sym = bcolors.BLUE + "▓▓" + bcolors.ENDC
+                    sym = bcolors.BLUE + "██" + bcolors.ENDC
                     row += sym
                     continue
 
                 # Controlled Tiles
                 for region in regions:
+                    if region.is_coord_bound((x, y)):
+                        changed = True
+                        sym = f"{bcolors.MAGENTA}{sym}{bcolors.ENDC}"
+                    if (x, y) in region.local_paths:
+                        sym = "▒▒"
                     if (x, y) in region.controlled_tiles:
                         if (x, y) in self.points_of_interest:
                             sym = "▛▟"
+                        elif (x, y) in region.local_paths:
+                            sym = "▒▒"
                         else:
                             sym = "░░"
                         if region.side == "A":
@@ -249,27 +257,36 @@ class GameMap:
                     for unit in region.units:
                         if (x, y) == unit.position:
                             match unit.direction:
+                                case -1:
+                                    sym = "╳╳"
                                 case 90:
-                                    sym = " ↑"
+                                    sym = "↑↑"
                                 case 45:
-                                    sym = " ↗"
+                                    sym = "↗↗"
                                 case 0:
-                                    sym = " →"
+                                    sym = "→→"
                                 case 315:
-                                    sym = " ↘"
+                                    sym = "↘↘"
                                 case 180:
-                                    sym = " ↓"
+                                    sym = "↓↓"
                                 case 225:
-                                    sym = " ↙"
+                                    sym = "↙↙"
                                 case 270:
-                                    sym = " ←"
+                                    sym = "←←"
                                 case 135:
-                                    sym = " ↖"
+                                    sym = "↖↖"
+                                case _:
+                                    assert 1 == 0, (
+                                        "Unknown direction:",
+                                        unit.direction,
+                                    )
 
                             if (x, y) in self.points_of_interest:
                                 sym = "▛▟"
                             else:
-                                sym = "██" if unit.holding_defense == 0 else "╳╳"
+                                # sym = "██"
+                                if unit.holding_defense:
+                                    "╳╳"
 
                             if unit.side == "B":
                                 sym = f"{bcolors.RED}{sym}{bcolors.ENDC}"
@@ -277,7 +294,7 @@ class GameMap:
                                 sym = f"{bcolors.CYAN}{sym}{bcolors.ENDC}"
 
                 # Default color for unclaimed tiles
-                if sym == to_base36(val).rjust(2):
+                if sym == to_base36(val).rjust(2) and not changed:
                     if (x, y) in self.points_of_interest:
                         sym = bcolors.YELLOW + "▛▟" + bcolors.ENDC
                     else:

@@ -82,8 +82,8 @@ region2 = RegionControl(
     list_of_positions=get_adjacent_positions((40, 40)),
 )
 
-regions = {"Alpha": region, "Bravo": region2}
-# regions = {"Alpha": region}
+# regions = {"Alpha": region, "Bravo": region2}
+regions = {"Alpha": region}
 
 region_list = list(regions.values())
 
